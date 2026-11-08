@@ -6,6 +6,8 @@ Vue.js or React. Telegram-native or web-only. Type-safe from database to UI.
 
 **[Live Demo (React)](https://react.antonchaynik.ru)** · [Live Demo (Vue)](https://vue.antonchaynik.ru)
 
+> **TypeScript edition:** [gramkit-ts](https://github.com/AHTOOOXA/gramkit-ts): the same API, schema and UI on Hono + Drizzle, running on Node or Bun ([2.3–3.1× the users](#python-vs-typescript-same-box-same-night) on the same box).
+
 ## Features
 
 | Feature | What You Get |
@@ -199,6 +201,24 @@ request, a DB pool bounded below Postgres' `max_connections`, pure-ASGI middlewa
 FastAPI `dependency_overrides` (which rebuild the dependency tree on every request), and log writes off the event
 loop. Details in [CHANGELOG.md](CHANGELOG.md). In production, run one uvicorn worker per core
 (`--workers N`) and size `DB__POOL_SIZE` so that every process together stays under `max_connections`.
+
+### Python vs TypeScript (same box, same night)
+
+[gramkit-ts](https://github.com/AHTOOOXA/gramkit-ts) is this framework ported to TypeScript (Hono, Drizzle, postgres.js;
+the same REST API, schema and UI). Both ran the same Conduit bench back to back on 2026-11-08, 2 workers each:
+
+| Conduit, users held 5 min (2026-11-08) | Users | req/s | App CPU per request |
+|---|---:|---:|---:|
+| **gramkit (Python)** | **1,200** | 315 | 3.9 ms |
+| gramkit-ts on Node | 2,700 | 677 | 1.5 ms |
+| gramkit-ts on Bun | 2,800 | 706 | 1.3 ms |
+| gramkit-ts on Node, hot queries prepared | 3,300 | 836 | 1.4 ms |
+| gramkit-ts on Bun, hot queries prepared | 3,700 | 953 | 1.1 ms |
+| Reference: plain FastAPI + asyncpg, no ORM | 2,700 | 709 | 1.4 ms |
+
+The box ran ~10 % slower that night than on 11-06 (the reference: 2,700 vs 3,000–3,100), so compare rows within a table,
+not across dates. Details, both benches and raw results:
+[gramkit-ts `docs/benchmarks/2026-11-08-conduit.md`](https://github.com/AHTOOOXA/gramkit-ts/blob/main/docs/benchmarks/2026-11-08-conduit.md).
 
 The method, scripts and pitfalls are packaged as a Claude Code skill:
 [`perf-lab`](https://github.com/AHTOOOXA/tony-skills/tree/main/perf-lab).
