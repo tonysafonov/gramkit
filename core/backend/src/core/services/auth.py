@@ -197,7 +197,7 @@ class AuthService(BaseService):
             code_key = f"{AUTH_CODE_PREFIX}{clean_username}"
             code_data = {
                 "code": code,
-                "user_id": user.id,
+                "user_id": str(user.id),  # a UUID; json.dumps can't serialize it
                 "created_at": datetime.now(UTC).isoformat(),
                 "expires_at": (datetime.now(UTC) + timedelta(minutes=AUTH_CODE_EXPIRY_MINUTES)).isoformat(),
             }
@@ -286,7 +286,7 @@ class AuthService(BaseService):
                     "error_code": "CODE_EXPIRED",
                 }
 
-            user_id = stored_data.get("user_id")
+            user_id = UUID(stored_data["user_id"])
             user = await self.repo.users.get_user_by_id(user_id)
 
             if not user:
@@ -1019,7 +1019,7 @@ class AuthService(BaseService):
         reset_data = {
             "email": normalized,
             "code": code,
-            "user_id": user.id,
+            "user_id": str(user.id),  # a UUID; json.dumps can't serialize it
             "created_at": datetime.now(UTC).isoformat(),
             "attempts": 0,
         }
@@ -1074,7 +1074,7 @@ class AuthService(BaseService):
 
         reset_data = json.loads(data_raw if isinstance(data_raw, str) else data_raw.decode())
         email = reset_data["email"]
-        user_id = reset_data["user_id"]
+        user_id = UUID(reset_data["user_id"])
 
         # Check attempts
         attempts = reset_data.get("attempts", 0)

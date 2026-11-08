@@ -420,7 +420,7 @@
       "run": {
         "title": "Run the template",
         "commands": [
-          "git clone https://github.com/AHTOOOXA/gramkit",
+          "git clone https://github.com/tonysafonov/gramkit",
           "cd gramkit",
           "pnpm install",
           "cp .env.example .env",

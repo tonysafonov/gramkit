@@ -154,6 +154,13 @@ async def telegram_stars_webhook(
         - 500 Internal Error: Transient business errors, unknown errors
         - 503 Service Unavailable: Infrastructure errors (DB, Redis)
     """
+    # Fail closed: with no secret configured the endpoint stays dormant. Telegram never calls it (the bot long-polls),
+    # so anything arriving here unauthenticated would be a forged payment confirmation.
+    telegram_secret = getattr(request.app.state, "telegram_webhook_secret", None)
+    if not telegram_secret:
+        logger.warning("Telegram Stars webhook called, but no webhook secret is configured: refused")
+        return Response(status_code=404)
+
     try:
         # Parse JSON payload
         try:
@@ -166,27 +173,26 @@ async def telegram_stars_webhook(
 
         logger.info(f"Received Telegram Stars webhook payload: {payload}")
 
-        # Validate secret token (if secret configured)
-        telegram_secret = getattr(request.app.state, "telegram_webhook_secret", None)
-        if telegram_secret:
-            validator = TelegramWebhookValidator(telegram_secret)
-            secret_header = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-
-            try:
-                validator.validate_secret(secret_header)
-                logger.info("Telegram webhook secret validated")
-            except HTTPException as e:
-                logger.warning(f"Invalid Telegram webhook secret: {e.detail}")
-                await alert_webhook_failure(
-                    payload=payload, error=Exception(f"Invalid secret: {e.detail}"), severity="critical"
-                )
-                raise
+        validator = TelegramWebhookValidator(telegram_secret)
+        secret_header = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+        try:
+            validator.validate_secret(secret_header)
+            logger.info("Telegram webhook secret validated")
+        except HTTPException as e:
+            logger.warning(f"Invalid Telegram webhook secret: {e.detail}")
+            await alert_webhook_failure(
+                payload=payload, error=Exception(f"Invalid secret: {e.detail}"), severity="critical"
+            )
+            raise
 
         # Process payment callback
         await services.payments.process_callback(payload, provider_id=PaymentProvider.TELEGRAM_STARS.value)
 
         logger.info("Telegram Stars webhook processed successfully")
         return Response(status_code=200)
+
+    except HTTPException:
+        raise  # the secret check's 401, not a processing failure
 
     except (OperationalError, SQLTimeoutError, RedisConnectionError, RedisTimeoutError) as e:
         # Infrastructure errors - provider should retry

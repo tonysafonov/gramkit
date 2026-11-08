@@ -7,5 +7,5 @@ export const SUPPORTED_LANGUAGES: readonly Language[] = ['en', 'ru'] as const;
 export const DEFAULT_LANGUAGE: Language = 'en';
 
 // Marketing page links (the template's home page is gramkit's demo landing).
-export const GITHUB_URL = 'https://github.com/AHTOOOXA/gramkit';
+export const GITHUB_URL = 'https://github.com/tonysafonov/gramkit';
 export const VUE_DEMO_URL = 'https://vue.antonchaynik.ru';
